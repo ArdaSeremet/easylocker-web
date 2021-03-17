@@ -1,0 +1,5 @@
+/temp/
+
+.env
+/vendor/
+composer.lock
