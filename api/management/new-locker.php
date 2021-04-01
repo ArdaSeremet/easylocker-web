@@ -75,20 +75,19 @@ if($_SERVER['REQUEST_METHOD'] == "POST") {
     $lockerId = $db->lastInsertId();
 
     for($i = 0; $i < intval($scount); $i++) {
-        $db->prepare('INSERT INTO drawers SET size = ?, locker_id = ?')->execute([ 's', $lockerId ]);
+        $db->prepare('INSERT INTO drawers SET size = ?, locker_id = ?, slave_id = ?')->execute([ 's', $lockerId, 0 ]);
     }
     for($i = 0; $i < intval($mcount); $i++) {
-        $db->prepare('INSERT INTO drawers SET size = ?, locker_id = ?')->execute([ 'm', $lockerId ]);
+        $db->prepare('INSERT INTO drawers SET size = ?, locker_id = ?, slave_id = ?')->execute([ 'm', $lockerId, 0 ]);
     }
     for($i = 0; $i < intval($lcount); $i++) {
-        $db->prepare('INSERT INTO drawers SET size = ?, locker_id = ?')->execute([ 'l', $lockerId ]);
+        $db->prepare('INSERT INTO drawers SET size = ?, locker_id = ?, slave_id = ?')->execute([ 'l', $lockerId, 0 ]);
     }
     for($i = 0; $i < intval($xlcount); $i++) {
-        $db->prepare('INSERT INTO drawers SET size = ?, locker_id = ?')->execute([ 'xl', $lockerId ]);
+        $db->prepare('INSERT INTO drawers SET size = ?, locker_id = ?, slave_id = ?')->execute([ 'xl', $lockerId, 0 ]);
     }
 
     sendAPIOutput('success', 'Successfully created the locker.');
 }
 
 sendAPIOutput('error', 'Only POST method is allowed.');
-

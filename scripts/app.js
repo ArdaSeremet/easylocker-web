@@ -5,37 +5,37 @@ $(() => {
         let username = "";
         const targetPath = $(this).attr('action');
         const formRole = $(this).attr('role');
-        if(formRole != 'admin') { username = $(this).find('input#username').val().trim(); }
+        if (formRole != 'admin') { username = $(this).find('input#username').val().trim(); }
         const password = $(this).find('input#password').val().trim();
         const errorField = $("#errorField");
         errorField.hide();
-        
-        if(formRole != 'admin' && username.length <= 0) {
+
+        if (formRole != 'admin' && username.length <= 0) {
             return errorField.text('Username cannot be empty.').show();
         }
 
-        if(password.length <= 0) {
+        if (password.length <= 0) {
             return errorField.text('Password cannot be empty.').show();
         }
 
         let postData;
-        if(formRole == 'user-register') {
+        if (formRole == 'user-register') {
             const name = $(this).find('input#name').val().trim();
             const surname = $(this).find('input#surname').val().trim();
             const email = $(this).find('input#email').val().trim();
 
-            if(name.length <= 0) {
+            if (name.length <= 0) {
                 return errorField.text('Name cannot be empty.').show();
             }
-            
-            if(surname.length <= 0) {
+
+            if (surname.length <= 0) {
                 return errorField.text('Surname cannot be empty.').show();
             }
-            
-            if(email.length <= 0) {
+
+            if (email.length <= 0) {
                 return errorField.text('E-mail cannot be empty.').show();
             }
-            
+
             postData = {
                 name: name,
                 surname: surname,
@@ -43,10 +43,10 @@ $(() => {
                 username: username,
                 password: password
             };
-        } else if(formRole == 'admin') {
+        } else if (formRole == 'admin') {
             const email = $(this).find('input#email').val().trim();
-            
-            if(email.length <= 0) {
+
+            if (email.length <= 0) {
                 return errorField.text('E-mail cannot be empty.').show();
             }
 
@@ -67,7 +67,7 @@ $(() => {
             dataType: 'JSON',
             data: postData,
             success: function (data) {
-                if(data.status === 'success') {
+                if (data.status === 'success') {
                     Swal.fire({
                         title: 'Success!',
                         text: data.message,
@@ -86,17 +86,18 @@ $(() => {
         });
     });
 
-    const assignRelayToDrawer = (drawerId, value) => {
+    const assignRelayToDrawer = (drawerId, [slaveId, solNum]) => {
         $.ajax({
             url: '/api/management/assign-relay.php',
             method: 'POST',
             dataType: 'JSON',
             data: {
                 drawerId: drawerId,
-                relayNumber: value
+                relayNumber: solNum,
+                slaveId: slaveId
             },
             success: function (data) {
-                if(data.status == 'success') {
+                if (data.status == 'success') {
                     Swal.fire('Success', data.message, 'success').then(() => { window.location = ''; });
                 } else {
                     Swal.fire('Error', data.message, 'error');
@@ -107,6 +108,48 @@ $(() => {
         });
     };
 
+    let lockerDrawerRemover = $('.lockerDrawerRemover');
+    lockerDrawerRemover.click(function (e) {
+        e.preventDefault();
+
+        let drawerId = $(this).attr('data-drawer-id');
+
+        Swal.fire({
+            title: 'Are you sure?',
+            text: "This operation will remove this drawer from the database.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#3085d6',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Continue!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                $.ajax({
+                    url: '/api/management/remove-drawer.php',
+                    type: "POST",
+                    dataType: "JSON",
+                    data: {
+                        'id': drawerId,
+                    },
+                    success: function (data) {
+                        if (data.status == 'success') {
+                            Swal.fire('Success', data.message, 'success').then(
+                                () => {
+                                    window.location = '';
+                                });
+                        } else {
+                            Swal.fire('Error', data.message, 'error');
+                        }
+                    },
+                    error: () => {
+                        Swal.fire('Error', "Internal system error occured.",
+                            'error');
+                    }
+                });
+            }
+        })
+    });
+
     let lockerRelayAssigner = $('.lockerRelayAssigner');
     lockerRelayAssigner.click(function (e) {
         e.preventDefault();
@@ -116,8 +159,87 @@ $(() => {
 
         Swal.fire({
             title: 'Assign a Relay',
-            input: 'select',
-            inputOptions: {
+            input: 'text',
+            inputPlaceholder: 'Enter the slave id number (1 to 16).',
+            showCancelButton: true,
+            inputValidator: (value) => {
+                value = parseInt(value);
+                if (value >= 1 && value <= 16) {
+                    Swal.fire({
+                        title: 'Assign a Relay',
+                        input: 'select',
+                        inputPlaceholder: 'Select the solenoid number.',
+                        showCancelButton: true,
+                        inputOptions: {
+                            1: "Solenoid 1",
+                            2: "Solenoid 2",
+                            3: "Solenoid 3",
+                            4: "Solenoid 4",
+                            5: "Solenoid 5",
+                            6: "Solenoid 6",
+                            7: "Solenoid 7",
+                            8: "Solenoid 8",
+                            9: "Solenoid 9",
+                            10: "Solenoid 10",
+                            11: "Solenoid 11",
+                            12: "Solenoid 12",
+                            13: "Solenoid 13",
+                            14: "Solenoid 14",
+                        },
+                        inputValidator: (solNum) => {
+                            solNum = parseInt(solNum);
+                            console.log([value, solNum], relayAssignments);
+
+                            function checkRelayExistence([value, solNum]) {
+                                let found = false;
+                                relayAssignments.forEach(item => {
+                                    if (item[0] == value && item[1] == solNum) {
+                                        found = true;
+                                    }
+                                });
+
+                                return found;
+                            }
+
+                            if (relayAssignments != undefined && checkRelayExistence([value, solNum])) {
+                                Swal.fire({
+                                    title: 'Are you sure?',
+                                    text: "This exact solenoid is attached with another drawer!",
+                                    icon: 'warning',
+                                    showCancelButton: true,
+                                    confirmButtonColor: '#3085d6',
+                                    cancelButtonColor: '#d33',
+                                    confirmButtonText: 'Continue!'
+                                }).then((result) => {
+                                    if (result.isConfirmed) {
+                                        assignRelayToDrawer(drawerId, [value, solNum]);
+                                    }
+                                })
+                            } else {
+                                assignRelayToDrawer(drawerId, [value, solNum]);
+                            }
+                        }
+                    });
+                    /*if (relayAssignments != undefined && relayAssignments.includes(value)) {
+                        Swal.fire({
+                            title: 'Are you sure?',
+                            text: "This relay is attached with another drawer!",
+                            icon: 'warning',
+                            showCancelButton: true,
+                            confirmButtonColor: '#3085d6',
+                            cancelButtonColor: '#d33',
+                            confirmButtonText: 'Continue!'
+                        }).then((result) => {
+                            if (result.isConfirmed) {
+                                assignRelayToDrawer(drawerId, value);
+                            }
+                        })
+                    } else {
+                        assignRelayToDrawer(drawerId, value);
+                    }*/
+
+                    /*
+
                 1: "Relay 1",
                 2: "Relay 2",
                 3: "Relay 3",
@@ -134,33 +256,12 @@ $(() => {
                 14: "Relay 14",
                 15: "Relay 15",
                 16: "Relay 16"
-            },
-            inputPlaceholder: 'Select a relay number.',
-            showCancelButton: true,
-            inputValidator: (value) => {
-                if (value >= 1 && value <= 16) {
-                    if(relayAssignments != undefined && relayAssignments.includes(value)) {
-                        Swal.fire({
-                            title: 'Are you sure?',
-                            text: "This relay is attached with another drawer!",
-                            icon: 'warning',
-                            showCancelButton: true,
-                            confirmButtonColor: '#3085d6',
-                            cancelButtonColor: '#d33',
-                            confirmButtonText: 'Continue!'
-                          }).then((result) => {
-                            if (result.isConfirmed) {            
-                                assignRelayToDrawer(drawerId, value);
-                            }
-                          })
-                    } else {    
-                        assignRelayToDrawer(drawerId, value);
-                    }
+                     */
                 } else {
-                    Swal.fire('Error', 'You need to select one of the relays.', 'error');
+                    Swal.fire('Error', 'You need to select a slave id.', 'error');
                 }
             }
-          });
+        });
     });
 
     let lockerReservationForm = $("form#loggedInReservation");
@@ -176,7 +277,7 @@ $(() => {
         const errorField = $("#errorField");
         const drawerSizes = ['s', 'm', 'l', 'xl'];
 
-        if(
+        if (
             lockerId == '0' ||
             !(drawerSizes.includes(drawerSize))
         ) {
@@ -184,7 +285,7 @@ $(() => {
             return;
         }
 
-        if(
+        if (
             lockerId == '' ||
             drawerSize == '' ||
             recipientName == '' ||
@@ -208,7 +309,7 @@ $(() => {
                 'barcodeNumber': barcodeNumber
             },
             success: (data) => {
-                if(data.status == 'success') {
+                if (data.status == 'success') {
                     errorField.hide();
 
                     Swal.fire('Success!', data.message, 'success').then(e => {
@@ -234,7 +335,7 @@ $(() => {
         const lockerDataPreview = $('#lockerDataPreview');
         const errorField = $("#errorField");
 
-        if(currentValue == '0') {
+        if (currentValue == '0') {
             lockerDataPreview.hide();
             errorField.hide();
             return;
@@ -248,9 +349,9 @@ $(() => {
             },
             dataType: 'JSON',
             success: (data) => {
-                if(data.status == 'success') {
+                if (data.status == 'success') {
                     errorField.hide();
-                    if(countriesCache == '') {
+                    if (countriesCache == '') {
                         $.ajax({
                             "async": true,
                             "crossDomain": true,
@@ -276,13 +377,13 @@ $(() => {
                 } else {
                     lockerDataPreview.hide();
                     errorField.html(data.message)
-                            .show();
+                        .show();
                     return;
                 }
             }, error: () => {
                 lockerDataPreview.hide();
                 errorField.html('Internal system error occured.')
-                          .show();
+                    .show();
                 return;
             }
         });
